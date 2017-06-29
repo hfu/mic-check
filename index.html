@@ -1,0 +1,46 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8"/>
+<title>Study 1</title>
+<title>address tiles mix-in</title>
+<meta name='viewport' content='initial-scale=1,maximum-scale=1,user-scalable=no' />
+<script src='https://api.tiles.mapbox.com/mapbox-gl-js/v0.34.0/mapbox-gl.js'></script>
+<link href='https://api.tiles.mapbox.com/mapbox-gl-js/v0.34.0/mapbox-gl.css' rel='stylesheet' />
+<link href='https://www.mapbox.com/base/latest/base.css' rel='stylesheet' />
+<style>
+body { margin:0; padding:0; }
+#map { position:absolute; top:0; bottom:0; width:100%; }
+table { border-collapse: collapse; }
+td { border: 1px solid #b9b9b9; }
+</style>
+</head>
+<body>
+<div id='map'></div>
+<script>
+mapboxgl.accessToken = 'pk.eyJ1IjoiaGZ1IiwiYSI6ImlRSGJVUTAifQ.rTx380smyvPc1gUfZv1cmw';
+map = new mapboxgl.Map({
+  container: 'map', style: 'mapbox://styles/mapbox/dark-v9',
+  center: [29.2382, -1.6804], zoom: 11.0, hash: true, maxZoom: 20
+});
+map.on('click', function(e) {
+  var features = map.queryRenderedFeatures(e.point, {});
+  if (!features.length) return;
+  var s = '';
+  for(var i in features) {
+    s += '<table><tr>'
+    for(var j in features[i].properties) {
+      var v = features[i].properties[j];
+      s += "<td>" + j + ": " +
+        v + "</td>";
+    }
+    s += '</tr></table>';
+  }
+  var popup = new mapboxgl.Popup()
+    .setLngLat(map.unproject(e.point))
+    .setHTML(s)
+    .addTo(map);
+});
+</script>
+</body>
+</html>
