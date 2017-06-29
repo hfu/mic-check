@@ -1,45 +1,111 @@
-<!doctype html>
+<!DOCTYPE html>
+<!-- This code is taken from https://github.com/mapbox/mbview (ISC License) -->
 <html>
 <head>
-<meta charset="utf-8"/>
-<title>Study 1</title>
-<title>address tiles mix-in</title>
+<meta charset='utf-8' />
+<title>Study 2</title>
 <meta name='viewport' content='initial-scale=1,maximum-scale=1,user-scalable=no' />
-<script src='https://api.tiles.mapbox.com/mapbox-gl-js/v0.34.0/mapbox-gl.js'></script>
-<link href='https://api.tiles.mapbox.com/mapbox-gl-js/v0.34.0/mapbox-gl.css' rel='stylesheet' />
+<script src='https://api.tiles.mapbox.com/mapbox-gl-js/v0.38.0/mapbox-gl.js'></script>
+<link href='https://api.tiles.mapbox.com/mapbox-gl-js/v0.38.0/mapbox-gl.css' rel='stylesheet' />
 <link href='https://www.mapbox.com/base/latest/base.css' rel='stylesheet' />
 <style>
 body { margin:0; padding:0; }
 #map { position:absolute; top:0; bottom:0; width:100%; }
-table { border-collapse: collapse; }
-td { border: 1px solid #b9b9b9; }
+.mbview_popup { color: #333; display: table;
+  font-family: "Open Sans", sans-serif; font-size: 10px; }
+.mbview_feature:not(:last-child) { border-bottom: 1px solid #ccc; }
+.mbview_layer:before { content: '#'; }
+.mbview_layer { display: block; font-weight: bold; }
+.mbview_property { display: table-row; }
+.mbview_property-value { display: table-cell; }
+.mbview_property-name { display: table-cell; padding-right: 10px; }
 </style>
 </head>
 <body>
+<style>
+#menu { position: absolute; top:10px; right:10px; z-index: 1;
+  color: white; cursor: pointer; }
+#menu-container { position: absolute; display: none; top: 50px; right: 10px;
+  z-index: 1; background-color: white; padding: 20px; }
+</style>
+<div id="menu"><span class='icon menu big'></span></div>
+<div id="menu-container">
+  <h4>Popup</h4>
+  <div id="menu-popup" onchange="menuPopup()" class='rounded-toggle short inline'>
+    <input id='show-popup' type='checkbox' name='ptoggle' value='all'>
+    <label for='show-popup'>show attributes</label>
+  </div>
+</div>
+<script>
+var menuBtn = document.querySelector("#menu");
+var menu = document.querySelector("#menu-container");
+menuBtn.addEventListener('click', function() {
+  popup.remove();
+  if (menuBtn.className.indexOf('active') > -1) {
+    menuBtn.className = ''; menu.style.display = 'none';
+  } else {
+    menuBtn.className = 'active'; menu.style.display = 'block';
+  }
+}, false);
+function menuPopup() {
+  wantPopup = document.querySelector("#show-popup").checked;
+}
+</script>
 <div id='map'></div>
 <script>
 mapboxgl.accessToken = 'pk.eyJ1IjoiaGZ1IiwiYSI6ImlRSGJVUTAifQ.rTx380smyvPc1gUfZv1cmw';
-map = new mapboxgl.Map({
+var map = new mapboxgl.Map({
   container: 'map', style: 'mapbox://styles/mapbox/dark-v9',
   center: [29.2382, -1.6804], zoom: 11.0, hash: true, maxZoom: 20
 });
-map.on('click', function(e) {
-  var features = map.queryRenderedFeatures(e.point, {});
-  if (!features.length) return;
-  var s = '';
-  for(var i in features) {
-    s += '<table><tr>'
-    for(var j in features[i].properties) {
-      var v = features[i].properties[j];
-      s += "<td>" + j + ": " +
-        v + "</td>";
-    }
-    s += '</tr></table>';
+
+function displayValue(value) {
+  if (typeof value === 'undefined' || value === null) return value;
+  if (typeof value === 'object' ||
+      typeof value === 'number' ||
+      typeof value === 'string') return value.toString();
+  return value;
+}
+function renderProperty(propertyName, property) {
+  return '<div class="mbview_property">' +
+    '<div class="mbview_property-name">' + propertyName + '</div>' +
+    '<div class="mbview_property-value">' + displayValue(property) + '</div>' +
+    '</div>';
+}
+function renderLayer(layerId) {
+  return '<div class="mbview_layer">' + layerId + '</div>';
+}
+function renderProperties(feature) {
+  var sourceProperty = renderLayer(feature.layer['source-layer'] || feature.layer.source);
+  var typeProperty = renderProperty('$type', feature.geometry.type);
+  var properties = Object.keys(feature.properties).map(function (propertyName) {
+    return renderProperty(propertyName, feature.properties[propertyName]);
+  });
+  return [sourceProperty, typeProperty].concat(properties).join('');
+}
+function renderFeatures(features) {
+  return features.map(function (ft) {
+    return '<div class="mbview_feature">' + renderProperties(ft) + '</div>';
+  }).join('');
+}
+function renderPopup(features) {
+  return '<div class="mbview_popup">' + renderFeatures(features) + '</div>';
+}
+var popup = new mapboxgl.Popup({closeButton: false, closeOnClick: false});
+var wantPopup = false;
+map.on('mousemove', function (e) {
+  var selectThreshold = 3;
+  var queryBox = [
+    [e.point.x - selectThreshold, e.point.y + selectThreshold],
+    [e.point.x + selectThreshold, e.point.y - selectThreshold]
+  ];
+  var features = map.queryRenderedFeatures(queryBox) || [];
+  map.getCanvas().style.cursor = (features.length) ? 'pointer' : '';
+  if (!features.length || !wantPopup) {
+    popup.remove();
+  } else {
+    popup.setLngLat(e.lngLat).setHTML(renderPopup(features)).addTo(map);
   }
-  var popup = new mapboxgl.Popup()
-    .setLngLat(map.unproject(e.point))
-    .setHTML(s)
-    .addTo(map);
 });
 </script>
 </body>
